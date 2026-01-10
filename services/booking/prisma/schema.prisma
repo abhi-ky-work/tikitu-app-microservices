@@ -1,0 +1,99 @@
+// This is your Prisma schema file for Booking Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("BOOKING_DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  partnerId   String
+  venueId     String
+  title       String
+  description String?
+  eventDate   DateTime
+  startTime   DateTime
+  endTime     DateTime
+  category    String
+  totalSeats  Int
+  availableSeats Int
+  basePrice   Float
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@index([partnerId])
+  @@index([venueId])
+  @@index([eventDate])
+  @@index([category])
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  eventId     String
+  userId      String
+  status      BookingStatus @default(PENDING)
+  totalAmount Float
+  numberOfTickets Int
+  paymentId   String?       @unique
+  bookingRef  String        @unique
+  bookedAt    DateTime      @default(now())
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  event   Event   @relation(fields: [eventId], references: [id])
+  tickets Ticket[]
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@index([bookingRef])
+  @@index([bookedAt])
+}
+
+model Ticket {
+  id          String       @id @default(uuid())
+  bookingId   String
+  eventId     String
+  userId      String
+  seatNumber  String?
+  ticketCode  String       @unique
+  status      TicketStatus @default(ACTIVE)
+  price       Float
+  usedAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([ticketCode])
+  @@index([status])
+}
+

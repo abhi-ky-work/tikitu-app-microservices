@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "Tikitu Microservices API",
+    "description": "API collection for Tikitu ticket booking microservices",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{cognito_jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "cognito_jwt_token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Gateway",
+      "item": [
+        {
+          "name": "Gateway Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Service",
+      "item": [
+        {
+          "name": "Admin Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Partner Service",
+      "item": [
+        {
+          "name": "Partner Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/partner/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "partner", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        {
+          "name": "Payment Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Service",
+      "item": [
+        {
+          "name": "Notification Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notification/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notification", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Booking Service",
+      "item": [
+        {
+          "name": "Booking Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/booking/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "booking", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Service",
+      "item": [
+        {
+          "name": "User Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/user/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "user", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

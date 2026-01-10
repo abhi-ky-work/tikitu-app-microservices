@@ -1,0 +1,38 @@
+// This is your Prisma schema file for Admin Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ADMIN_DATABASE_URL")
+}
+
+// Example Admin model
+model Admin {
+  id        String   @id @default(uuid())
+  cognitoId String   @unique
+  email     String   @unique
+  name      String
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cognitoId])
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  resource  String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+

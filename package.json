@@ -1,0 +1,29 @@
+{
+  "name": "tikitu-microservices",
+  "version": "1.0.0",
+  "description": "Ticket booking application microservices backend",
+  "private": true,
+  "workspaces": [
+    "services/*"
+  ],
+  "scripts": {
+    "dev:admin": "npm run dev --workspace=services/admin",
+    "dev:partner": "npm run dev --workspace=services/partner",
+    "dev:payment": "npm run dev --workspace=services/payment",
+    "dev:notification": "npm run dev --workspace=services/notification",
+    "dev:booking": "npm run dev --workspace=services/booking",
+    "dev:user": "npm run dev --workspace=services/user",
+    "dev:auth-route": "npm run dev --workspace=services/auth-route",
+    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:partner\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:booking\" \"npm run dev:user\" \"npm run dev:auth-route\"",
+    "build:all": "npm run build --workspaces",
+    "prisma:generate": "npm run prisma:generate --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+

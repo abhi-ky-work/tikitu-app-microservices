@@ -1,0 +1,61 @@
+// This is your Prisma schema file for Payment Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PAYMENT_DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  UPI
+  NET_BANKING
+  WALLET
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  bookingId       String        @unique
+  userId          String
+  amount          Float
+  currency        String        @default("USD")
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod
+  transactionId   String?       @unique
+  gatewayResponse Json?
+  failureReason   String?
+  refundAmount    Float?
+  refundedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PaymentLog {
+  id        String   @id @default(uuid())
+  paymentId String
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([createdAt])
+}
+

@@ -1,0 +1,52 @@
+// This is your Prisma schema file for Partner Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PARTNER_DATABASE_URL")
+}
+
+// Example Partner model
+model Partner {
+  id          String   @id @default(uuid())
+  cognitoId   String   @unique
+  email       String   @unique
+  name        String
+  companyName String
+  phone       String
+  address     String?
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  commission  Float    @default(10.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  venues Venue[]
+
+  @@index([cognitoId])
+  @@index([email])
+}
+
+model Venue {
+  id          String   @id @default(uuid())
+  partnerId   String
+  name        String
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  capacity    Int
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([city])
+}
+
