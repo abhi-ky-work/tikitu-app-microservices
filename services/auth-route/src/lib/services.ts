@@ -1,11 +1,11 @@
-// Service URLs configuration
-export const SERVICE_URLS = {
-  admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:3001',
-  partner: process.env.PARTNER_SERVICE_URL || 'http://localhost:3002',
-  payment: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3003',
-  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3004',
-  booking: process.env.BOOKING_SERVICE_URL || 'http://localhost:3005',
-  user: process.env.USER_SERVICE_URL || 'http://localhost:3006',
+// Service URLs configuration - only enabled services have URLs
+export const SERVICE_URLS: Record<string, string | undefined> = {
+  admin: process.env.ADMIN_SERVICE_URL,
+  partner: process.env.PARTNER_SERVICE_URL,
+  payment: process.env.PAYMENT_SERVICE_URL,
+  notification: process.env.NOTIFICATION_SERVICE_URL,
+  booking: process.env.BOOKING_SERVICE_URL,
+  user: process.env.USER_SERVICE_URL,
 };
 
 // Service route mapping
@@ -20,7 +20,10 @@ export const SERVICE_ROUTES: Record<string, keyof typeof SERVICE_URLS> = {
 
 export function getServiceUrl(serviceName: string): string | null {
   const service = SERVICE_ROUTES[serviceName];
-  return service ? SERVICE_URLS[service] : null;
+  if (!service) return null;
+  
+  const url = SERVICE_URLS[service];
+  return url || null; // Return null if service URL is not configured
 }
 
 export function parseServicePath(pathname: string): { service: string; path: string } | null {

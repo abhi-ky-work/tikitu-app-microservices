@@ -54,8 +54,8 @@ export async function middleware(request: NextRequest) {
 
   if (!serviceUrl) {
     return NextResponse.json(
-      { error: 'Service not found' },
-      { status: 404 }
+      { error: 'Service not available', message: `The '${service}' service is not enabled` },
+      { status: 503 }
     );
   }
 
