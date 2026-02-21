@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("PARTNER_DATABASE_URL")
 }
 
 // Example Partner model
@@ -25,6 +24,7 @@ model Partner {
   updatedAt   DateTime @updatedAt
 
   venues Venue[]
+  events Event[]
 
   @@index([cognitoId])
   @@index([email])
@@ -50,3 +50,43 @@ model Venue {
   @@index([city])
 }
 
+model Event {
+  id                String   @id @default(uuid())
+  partnerId         String
+  name              String
+  category          String
+  description       String?
+  backgroundImage   String?
+  eventDate         DateTime
+  startTime         String
+  endTime           String?
+  venueName         String
+  location          String
+  ticketSalesClose  DateTime?
+  noteToAttendees   String?
+  termsConditions   String?
+  refundPolicy      String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  partner     Partner      @relation(fields: [partnerId], references: [id])
+  ticketTypes TicketType[]
+
+  @@index([partnerId])
+  @@index([category])
+}
+
+model TicketType {
+  id        String   @id @default(uuid())
+  eventId   String
+  name      String
+  price     Float
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Databases
+  # Main PostgreSQL Database for other services
   postgres:
     image: postgres:15-alpine
     environment:
@@ -18,22 +18,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # Admin Service
-  # admin-service:
-  #   build:
-  #     context: ./services/admin
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     - ADMIN_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/admin_db
-  #     - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
-  #     - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
-  #     - AWS_REGION=${AWS_REGION}
-  #     - NODE_ENV=production
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  # Separate Database for Partner Service
+  partner-postgres-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: partner_user
+      POSTGRES_PASSWORD: partner_password
+      POSTGRES_DB: partner_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - partner_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U partner_user -d partner_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Partner Service
   partner-service:
@@ -43,48 +43,14 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - PARTNER_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/partner_db
+      - PARTNER_DATABASE_URL=postgresql://partner_user:partner_password@partner-postgres-db:5432/partner_db
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
       - NODE_ENV=production
     depends_on:
-      postgres:
+      partner-postgres-db:
         condition: service_healthy
-
-  # Payment Service
-  # payment-service:
-  #   build:
-  #     context: ./services/payment
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3003:3003"
-  #   environment:
-  #     - PAYMENT_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/payment_db
-  #     - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
-  #     - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
-  #     - AWS_REGION=${AWS_REGION}
-  #     - NODE_ENV=production
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-
-  # Notification Service
-  # notification-service:
-  #   build:
-  #     context: ./services/notification
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3004:3004"
-  #   environment:
-  #     - NOTIFICATION_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/notification_db
-  #     - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
-  #     - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
-  #     - AWS_REGION=${AWS_REGION}
-  #     - NODE_ENV=production
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
 
   # Booking Service
   booking-service:
@@ -103,23 +69,6 @@ services:
       postgres:
         condition: service_healthy
 
-  # User Service
-  # user-service:
-  #   build:
-  #     context: ./services/user
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3006:3006"
-  #   environment:
-  #     - USER_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/user_db
-  #     - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
-  #     - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
-  #     - AWS_REGION=${AWS_REGION}
-  #     - NODE_ENV=production
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-
   # AuthRoute Gateway
   auth-route-gateway:
     build:
@@ -131,21 +80,13 @@ services:
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
-      # - ADMIN_SERVICE_URL=http://admin-service:3001
       - PARTNER_SERVICE_URL=http://partner-service:3002
-      # - PAYMENT_SERVICE_URL=http://payment-service:3003
-      # - NOTIFICATION_SERVICE_URL=http://notification-service:3004
       - BOOKING_SERVICE_URL=http://booking-service:3005
-      # - USER_SERVICE_URL=http://user-service:3006
       - NODE_ENV=production
     depends_on:
-      # - admin-service
       - partner-service
-      # - payment-service
-      # - notification-service
       - booking-service
-      # - user-service
 
 volumes:
   postgres_data:
-
+  partner_postgres_data:
