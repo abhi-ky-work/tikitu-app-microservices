@@ -1,36 +1,20 @@
 version: '3.8'
 
 services:
-  # Main PostgreSQL Database for other services
+  # Main PostgreSQL Database for all services
   postgres:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: tikitu
       POSTGRES_PASSWORD: tikitu_password
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tikitu"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Separate Database for Partner Service
-  partner-postgres-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: partner_user
-      POSTGRES_PASSWORD: partner_password
-      POSTGRES_DB: partner_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - partner_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U partner_user -d partner_db"]
+      test: ["CMD-SHELL", "pg_isready -U tikitu -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,13 +27,13 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - PARTNER_DATABASE_URL=postgresql://partner_user:partner_password@partner-postgres-db:5432/partner_db
+      - PARTNER_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/partner_db
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
       - NODE_ENV=production
     depends_on:
-      partner-postgres-db:
+      postgres:
         condition: service_healthy
 
   # Booking Service
@@ -89,4 +73,3 @@ services:
 
 volumes:
   postgres_data:
-  partner_postgres_data:

@@ -20,6 +20,7 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
     return payload as AuthUser;
   } catch (error) {
     console.error('Token verification failed:', error);
+    console.error('Token:', token);
     return null;
   }
 }

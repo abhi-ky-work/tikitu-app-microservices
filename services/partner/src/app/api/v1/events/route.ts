@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { authenticateRequest } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
+  console.log('POST request received partner/events');
   try {
     const user = await authenticateRequest(request);
 

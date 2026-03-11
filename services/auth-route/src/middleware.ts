@@ -26,37 +26,77 @@ function isPublicRoute(pathname: string): boolean {
          HEALTH_CHECK_ROUTES.some(route => pathname === route);
 }
 
+// Add CORS headers to the response
+function withCors(response: Response, origin: string | null) {
+  // Create a new NextResponse from the original response body and status
+  const finalResponse = new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+  });
+
+  // Copy all original headers first
+  response.headers.forEach((value, key) => {
+    finalResponse.headers.set(key, value);
+  });
+  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>withCors headers:', finalResponse.headers);
+  // CORS headers logic
+  // If we have an origin, we MUST echo it back to allow credentials
+  if (origin) {
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>withCors origin:', origin);
+    finalResponse.headers.set('Access-Control-Allow-Origin', origin);
+    finalResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+    finalResponse.headers.set('Vary', 'Origin');
+  } else if (process.env.NODE_ENV === 'development') {
+    // Fallback for development if no origin is present
+    finalResponse.headers.set('Access-Control-Allow-Origin', '*');
+  }
+
+  // Common CORS headers for all responses
+  finalResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  finalResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  finalResponse.headers.set('Access-Control-Allow-Private-Network', 'true');
+  finalResponse.headers.set('Access-Control-Max-Age', '86400');
+
+  return finalResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const origin = request.headers.get('origin');
+
+  // Handle CORS Preflight request
+  if (request.method === 'OPTIONS') {
+    return withCors(new Response(null, { status: 204 }), origin);
+  }
 
   // Handle gateway health check
   if (pathname === '/api/health') {
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       status: 'healthy',
       service: 'auth-route-gateway',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
-    });
+    }), origin);
   }
 
   // Parse service and path from URL
   const parsed = parseServicePath(pathname);
   
   if (!parsed) {
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Invalid request path' },
       { status: 400 }
-    );
+    ), origin);
   }
 
   const { service, path } = parsed;
   const serviceUrl = getServiceUrl(service);
 
   if (!serviceUrl) {
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Service not available', message: `The '${service}' service is not enabled` },
       { status: 503 }
-    );
+    ), origin);
   }
 
   // Check if route requires authentication
@@ -64,18 +104,18 @@ export async function middleware(request: NextRequest) {
     const user = await authenticateRequest(request);
     
     if (!user) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Unauthorized', message: 'Invalid or missing authentication token' },
         { status: 401 }
-      );
+      ), origin);
     }
   }
 
   // Proxy the request to the appropriate microservice
-  return proxyRequest(serviceUrl, request, path);
+  const proxyResponse = await proxyRequest(serviceUrl, request, path);
+  return withCors(proxyResponse, origin);
 }
 
 export const config = {
-  matcher: '/api/v1/:path*',
+  matcher: ['/api/v1/:path*', '/api/health'],
 };
-
