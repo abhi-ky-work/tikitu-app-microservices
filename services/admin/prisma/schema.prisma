@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("ADMIN_DATABASE_URL")
 }
 
 // Example Admin model

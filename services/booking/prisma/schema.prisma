@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("BOOKING_DATABASE_URL")
 }
 
 enum BookingStatus {
