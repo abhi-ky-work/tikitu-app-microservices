@@ -2,6 +2,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated/client"
 }
 
 datasource db {
@@ -28,6 +29,7 @@ model Partner {
 
   @@index([cognitoId])
   @@index([email])
+  @@map("partnerProfiles")
 }
 
 model Venue {
