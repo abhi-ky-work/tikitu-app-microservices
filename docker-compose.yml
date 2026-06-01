@@ -1,7 +1,16 @@
 version: '3.8'
 
 services:
-  # Main PostgreSQL Database for all services
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -19,57 +28,154 @@ services:
       timeout: 5s
       retries: 5
 
-  # Partner Service
+  admin-service:
+    build:
+      context: .
+      dockerfile: services/admin/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - ADMIN_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/admin_db
+      - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
+      - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
+      - AWS_REGION=${AWS_REGION}
+      - NODE_ENV=production
+      - PORT=3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   partner-service:
     build:
-      context: ./services/partner
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/partner/Dockerfile
     ports:
       - "3002:3002"
     environment:
       - PARTNER_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/partner_db
+      - BOOKING_SERVICE_URL=http://booking-service:3005
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-tikitu-dev-internal-key}
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
       - NODE_ENV=production
+      - PORT=3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      booking-service:
+        condition: service_started
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - PAYMENT_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/payment_db
+      - BOOKING_SERVICE_URL=http://booking-service:3005
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-tikitu-dev-internal-key}
+      - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
+      - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
+      - AWS_REGION=${AWS_REGION}
+      - NODE_ENV=production
+      - PORT=3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      booking-service:
+        condition: service_started
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      - NOTIFICATION_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/notification_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-tikitu-dev-internal-key}
+      - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
+      - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
+      - AWS_REGION=${AWS_REGION}
+      - NODE_ENV=production
+      - PORT=3004
     depends_on:
       postgres:
         condition: service_healthy
 
-  # Booking Service
   booking-service:
     build:
-      context: ./services/booking
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/booking/Dockerfile
     ports:
       - "3005:3005"
     environment:
       - BOOKING_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/booking_db
+      - BOOKING_DATABASE_READ_URL=postgresql://tikitu:tikitu_password@postgres:5432/booking_db
+      - USER_DATABASE_READ_URL=postgresql://tikitu:tikitu_password@postgres:5432/user_db
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
+      - PAYMENT_SERVICE_URL=http://payment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-tikitu-dev-internal-key}
+      - BOOKING_RATE_LIMIT_PER_MINUTE=30
+      - EVENTS_CACHE_TTL_SECONDS=60
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
       - NODE_ENV=production
+      - PORT=3005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user/Dockerfile
+    ports:
+      - "3006:3006"
+    environment:
+      - USER_DATABASE_URL=postgresql://tikitu:tikitu_password@postgres:5432/user_db
+      - USER_DATABASE_READ_URL=postgresql://tikitu:tikitu_password@postgres:5432/user_db
+      - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
+      - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
+      - AWS_REGION=${AWS_REGION}
+      - NODE_ENV=production
+      - PORT=3006
     depends_on:
       postgres:
         condition: service_healthy
 
-  # AuthRoute Gateway
   auth-route-gateway:
     build:
-      context: ./services/auth-route
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/auth-route/Dockerfile
     ports:
       - "3000:3000"
     environment:
       - AWS_COGNITO_USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
       - AWS_COGNITO_CLIENT_ID=${AWS_COGNITO_CLIENT_ID}
       - AWS_REGION=${AWS_REGION}
+      - ADMIN_SERVICE_URL=http://admin-service:3001
       - PARTNER_SERVICE_URL=http://partner-service:3002
+      - PAYMENT_SERVICE_URL=http://payment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
       - BOOKING_SERVICE_URL=http://booking-service:3005
+      - USER_SERVICE_URL=http://user-service:3006
       - NODE_ENV=production
+      - PORT=3000
     depends_on:
+      - admin-service
       - partner-service
+      - payment-service
+      - notification-service
       - booking-service
+      - user-service
 
 volumes:
   postgres_data:

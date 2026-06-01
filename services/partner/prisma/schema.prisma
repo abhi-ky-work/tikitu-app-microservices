@@ -1,5 +1,3 @@
-// This is your Prisma schema file for Partner Service
-
 generator client {
   provider = "prisma-client-js"
   output   = "./generated/client"
@@ -9,31 +7,59 @@ datasource db {
   provider = "postgresql"
 }
 
-// Example Partner model
+model TicketCategory {
+  name         String
+  description  String?
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  categoryCode TicketCategoryCode @id @unique
+  ticketTypes  TicketType[]
+
+  @@map("ticket_categories")
+}
+
 model Partner {
-  id          String   @id @default(uuid())
-  cognitoId   String   @unique
-  email       String   @unique
+  id          String          @id @default(uuid())
+  cognitoId   String          @unique
+  email       String          @unique
   name        String
   companyName String
   phone       String
   address     String?
-  isVerified  Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  commission  Float    @default(10.0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  venues Venue[]
-  events Event[]
+  isVerified  Boolean         @default(false)
+  isActive    Boolean         @default(true)
+  commission  Float           @default(10.0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      Event[]
+  members     PartnerMember[]
+  venues      Venue[]
 
   @@index([cognitoId])
   @@index([email])
   @@map("partnerProfiles")
 }
 
+/// Partner-portal staff (2M MAU can map here without 2M Partner rows)
+model PartnerMember {
+  id        String   @id @default(uuid())
+  partnerId String
+  cognitoId String   @unique
+  email     String
+  name      String?
+  role      String   @default("STAFF")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([cognitoId])
+}
+
 model Venue {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   partnerId   String
   name        String
   address     String
@@ -42,53 +68,100 @@ model Venue {
   zipCode     String
   capacity    Int
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  partner Partner @relation(fields: [partnerId], references: [id])
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  venueType   VenueType @default(CLUB)
+  metadata    Json      @default("{}")
+  events      Event[]
+  partner     Partner   @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId])
   @@index([city])
+  @@index([venueType])
 }
 
 model Event {
-  id                String   @id @default(uuid())
-  partnerId         String
-  name              String
-  category          String
-  description       String?
-  backgroundImage   String?
-  eventDate         DateTime
-  startTime         String
-  endTime           String?
-  venueName         String
-  location          String
-  ticketSalesClose  DateTime?
-  noteToAttendees   String?
-  termsConditions   String?
-  refundPolicy      String?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  partner     Partner      @relation(fields: [partnerId], references: [id])
-  ticketTypes TicketType[]
+  id               String       @id @default(uuid())
+  partnerId        String
+  name             String
+  category         String
+  description      String?
+  backgroundImage  String?
+  eventDate        DateTime
+  startTime        String
+  endTime          String?
+  venueName        String
+  location         String
+  ticketSalesClose DateTime?
+  noteToAttendees  String?
+  termsConditions  String?
+  refundPolicy     String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  venueId          String?
+  eventType        EventType    @default(CLUB_NIGHT)
+  status           EventStatus  @default(DRAFT)
+  metadata         Json         @default("{}")
+  publishedAt      DateTime?
+  partner          Partner      @relation(fields: [partnerId], references: [id])
+  venue            Venue?       @relation(fields: [venueId], references: [id])
+  ticketTypes      TicketType[]
 
   @@index([partnerId])
+  @@index([venueId])
   @@index([category])
+  @@index([status])
+  @@index([eventDate])
 }
 
 model TicketType {
-  id        String   @id @default(uuid())
-  eventId   String
-  name      String
-  price     Float
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id           String             @id @default(uuid())
+  eventId      String
+  name         String?
+  price        Float
+  quantity     Int
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  categoryCode TicketCategoryCode
+  category     TicketCategory     @relation(fields: [categoryCode], references: [categoryCode])
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+  @@index([categoryCode])
+}
+
+enum VenueType {
+  CLUB
+  ARENA
+  CORPORATE_HALL
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum EventType {
+  CLUB_NIGHT
+  SPORTS
+  CORPORATE
+  PRIVATE
+  OTHER
+}
+
+enum TicketCategoryCode {
+  EBD
+  PH2
+  PH3
+  PH4
+  LSL
+  CUP
+  GRL
+  STD
+  GR4
+  PL4
+  LGR
 }

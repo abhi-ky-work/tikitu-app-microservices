@@ -1,6 +1,6 @@
 # Tikitu - Microservices Backend
 
-A scalable microservices-based backend for a ticket booking application built with Next.js, Prisma, and AWS Cognito.
+A scalable microservices-based backend for a ticket booking application built with NestJS, Prisma, and AWS Cognito.
 
 ## 🏗️ Architecture Overview
 
@@ -162,8 +162,11 @@ cd ../..
 ### Run all services concurrently
 
 ```bash
+npm run build:common
 npm run dev:all
 ```
+
+`dev:all` builds `@tikitu/common` automatically, then starts all NestJS services with hot reload.
 
 ### Run individual services
 
@@ -214,12 +217,14 @@ GET http://localhost:3000/api/v1/user/health
 All APIs follow the versioning pattern: `/api/v1/{service}/{endpoint}`
 
 Examples:
-- `/api/v1/booking/events`
-- `/api/v1/user/profile`
-- `/api/v1/admin/users`
-- `/api/v1/partner/venues`
-- `/api/v1/payment/transactions`
-- `/api/v1/notification/send`
+- `GET /api/v1/booking/events?city=Mumbai` (public discovery)
+- `POST /api/v1/user/register` (public)
+- `POST /api/v1/partner/events` (partner: create draft catalog event)
+- `POST /api/v1/partner/events/:id/publish` (partner: publish inventory to booking)
+- `POST /api/v1/booking/bookings` (user: purchase)
+- `POST /api/v1/payment/payments/:id/capture` (user: complete payment saga)
+
+See [docs/DATABASE.md](./docs/DATABASE.md) for database strategy.
 
 ## 🔐 Authentication
 
@@ -256,6 +261,23 @@ Each microservice has its own PostgreSQL database with Prisma ORM. See individua
 - [Booking Schema](./services/booking/README.md)
 - [User Schema](./services/user/README.md)
 
+### Ticket Types (Enums)
+
+To optimize storage space and improve readability in database records, we use standardized 3-character codes instead of UUIDs for referencing ticket types across tables.
+
+| Code | Name |
+| :--- | :--- |
+| `EBD` | Early Bird |
+| `PH2` | Phase 2 |
+| `PH3` | Phase 3 |
+| `PH4` | Phase 4 |
+| `LSL` | Last Slot |
+| `CUP` | Couples |
+| `GRL` | Girls |
+| `STD` | Standard |
+| `GR4` | Group Of 4 |
+| `PL4` | Group of 4+ |
+
 ## 🏗️ Project Structure
 
 ```
@@ -290,6 +312,9 @@ tikitu-microservices/
 │   ├── booking/            # Booking Service (Port 3005)
 │   └── user/               # User Service (Port 3006)
 │
+├── packages/
+│   └── common/             # Shared Cognito auth, CORS helpers
+│
 ├── package.json            # Root package.json with workspaces
 ├── .gitignore
 └── README.md
@@ -300,10 +325,10 @@ tikitu-microservices/
 ### Adding a New Microservice
 
 1. Create a new directory under `services/`
-2. Initialize Next.js with TypeScript
+2. Scaffold a NestJS app (`nest-cli.json`, `src/main.ts`, modules)
 3. Add Prisma with appropriate schema
 4. Implement health check endpoint at `/api/v1/health`
-5. Add authentication middleware
+5. Import `CognitoAuthModule` from `@tikitu/common` for protected routes
 6. Update the AuthRoute gateway to include the new service
 7. Update root `package.json` workspace scripts
 
@@ -331,7 +356,7 @@ npm run build
 
 ## 📦 Technology Stack
 
-- **Framework**: Next.js 14
+- **Framework**: NestJS 10
 - **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL
@@ -355,23 +380,15 @@ Each microservice can be deployed independently. Recommended deployment options:
 
 - **AWS ECS/EKS**: For containerized deployments
 - **AWS Lambda**: For serverless deployments
-- **Vercel**: For Next.js deployments
-- **Docker**: For containerization
+- **Docker**: For containerization (see `docker-compose.yml`)
 
-### Docker Deployment (Example)
+### Docker Deployment
 
-```dockerfile
-# Dockerfile for a microservice
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-RUN npx prisma generate
-EXPOSE 3001
-CMD ["npm", "start"]
+```bash
+docker compose up --build
 ```
+
+Each service Dockerfile builds from the monorepo root so `@tikitu/common` is available.
 
 ## 📝 Environment Variables Reference
 
@@ -419,7 +436,7 @@ For issues and questions:
 
 ## 📚 Additional Resources
 
-- [Next.js Documentation](https://nextjs.org/docs)
+- [NestJS Documentation](https://docs.nestjs.com)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [AWS Cognito Documentation](https://docs.aws.amazon.com/cognito)
 - [Microservices Pattern](https://microservices.io)

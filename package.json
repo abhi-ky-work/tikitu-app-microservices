@@ -4,19 +4,21 @@
   "description": "Ticket booking application microservices backend",
   "private": true,
   "workspaces": [
+    "packages/*",
     "services/*"
   ],
   "scripts": {
-    "dev:admin": "npm run dev --workspace=services/admin",
-    "dev:partner": "npm run dev --workspace=services/partner",
-    "dev:payment": "npm run dev --workspace=services/payment",
-    "dev:notification": "npm run dev --workspace=services/notification",
-    "dev:booking": "npm run dev --workspace=services/booking",
-    "dev:user": "npm run dev --workspace=services/user",
-    "dev:auth-route": "npm run dev --workspace=services/auth-route",
-    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:partner\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:booking\" \"npm run dev:user\" \"npm run dev:auth-route\"",
-    "build:all": "npm run build --workspaces",
-    "prisma:generate": "npm run prisma:generate --workspaces"
+    "build:common": "npm run build --workspace=@tikitu/common",
+    "dev:admin": "npm run dev --workspace=@tikitu/admin-service",
+    "dev:partner": "npm run dev --workspace=@tikitu/partner-service",
+    "dev:payment": "npm run dev --workspace=@tikitu/payment-service",
+    "dev:notification": "npm run dev --workspace=@tikitu/notification-service",
+    "dev:booking": "npm run dev --workspace=@tikitu/booking-service",
+    "dev:user": "npm run dev --workspace=@tikitu/user-service",
+    "dev:auth-route": "npm run dev --workspace=@tikitu/auth-route-service",
+    "dev:all": "npm run build:common && concurrently \"npm run dev:admin\" \"npm run dev:partner\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:booking\" \"npm run dev:user\" \"npm run dev:auth-route\"",
+    "build:all": "npm run build:common && npm run build --workspaces --if-present",
+    "prisma:generate": "npm run prisma:generate --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

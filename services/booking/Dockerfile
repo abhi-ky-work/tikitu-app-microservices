@@ -1,27 +1,22 @@
 FROM node:22-alpine
 
-# Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
-COPY prisma ./prisma/
+COPY package.json package-lock.json ./
+COPY packages/common ./packages/common/
+COPY services/booking ./services/booking/
+
 RUN npm install
+RUN npm run build --workspace=@tikitu/common
 
-# Generate Prisma Client
+WORKDIR /app/services/booking
 RUN npx prisma generate
-
-# Copy source code
-COPY . .
-
-# Build the application
 RUN npm run build
 
 EXPOSE 3005
-
 ENV PORT=3005
 ENV NODE_ENV=production
 
-CMD ["npm", "start"]
+CMD ["node", "dist/main.js"]

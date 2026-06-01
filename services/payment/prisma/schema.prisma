@@ -1,4 +1,4 @@
-// This is your Prisma schema file for Payment Service
+// Payment Service
 
 generator client {
   provider = "prisma-client-js"
@@ -35,6 +35,7 @@ model Payment {
   status          PaymentStatus @default(PENDING)
   paymentMethod   PaymentMethod
   transactionId   String?       @unique
+  idempotencyKey  String?       @unique
   gatewayResponse Json?
   failureReason   String?
   refundAmount    Float?
@@ -59,3 +60,15 @@ model PaymentLog {
   @@index([createdAt])
 }
 
+/// Outbox for notifying booking service after payment capture
+model PaymentOutbox {
+  id        String   @id @default(uuid())
+  paymentId String
+  bookingId String
+  eventType String
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([processed, createdAt])
+}

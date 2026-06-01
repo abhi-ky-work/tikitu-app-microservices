@@ -1,23 +1,19 @@
 FROM node:22-alpine
 
-# Install OpenSSL
-RUN apk add --no-cache openssl
-
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
+COPY packages/common ./packages/common/
+COPY services/auth-route ./services/auth-route/
+
 RUN npm install
+RUN npm run build --workspace=@tikitu/common
 
-# Copy source code
-COPY . .
-
-# Build the application
+WORKDIR /app/services/auth-route
 RUN npm run build
 
 EXPOSE 3000
-
 ENV PORT=3000
 ENV NODE_ENV=production
 
-CMD ["npm", "start"]
+CMD ["node", "dist/main.js"]

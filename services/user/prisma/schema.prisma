@@ -1,4 +1,4 @@
-// This is your Prisma schema file for User Service
+// User Service — consumer profiles only (partners → partner service, admins → admin service)
 
 generator client {
   provider = "prisma-client-js"
@@ -9,12 +9,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  USER
-  PARTNER
-  ADMIN
-}
-
 model User {
   id           String    @id @default(uuid())
   cognitoId    String    @unique
@@ -23,7 +17,6 @@ model User {
   lastName     String
   phone        String?
   dateOfBirth  DateTime?
-  role         UserRole  @default(USER)
   isVerified   Boolean   @default(false)
   isActive     Boolean   @default(true)
   profileImage String?
@@ -31,25 +24,25 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  preferences UserPreference?
-  addresses   Address[]
+  preferences    UserPreference?
+  addresses      Address[]
+  favoriteVenues FavoriteVenue[]
 
   @@index([cognitoId])
   @@index([email])
-  @@index([role])
 }
 
 model UserPreference {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  language          String   @default("en")
-  currency          String   @default("USD")
-  timezone          String   @default("UTC")
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  language           String   @default("en")
+  currency           String   @default("USD")
+  timezone           String   @default("UTC")
   emailNotifications Boolean  @default(true)
-  smsNotifications  Boolean  @default(true)
-  pushNotifications Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  smsNotifications   Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
@@ -57,20 +50,32 @@ model UserPreference {
 }
 
 model Address {
-  id          String   @id @default(uuid())
-  userId      String
-  type        String   @default("home") // home, work, other
-  street      String
-  city        String
-  state       String
-  zipCode     String
-  country     String
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   @default("home")
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
+/// External reference to partner service Venue.id
+model FavoriteVenue {
+  id        String   @id @default(uuid())
+  userId    String
+  venueId   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, venueId])
+  @@index([userId])
+}
