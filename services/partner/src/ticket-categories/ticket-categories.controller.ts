@@ -5,7 +5,7 @@ import { UpdateTicketCategoryDto } from './dto/update-ticket-category.dto';
 import { TicketCategoryCode } from '../../prisma/generated/client';
 import { Public } from '@tikitu/common';
 
-@Controller('v1/partner/ticket-categories')
+@Controller('v1/ticket-categories')
 @Public()
 export class TicketCategoriesController {
   constructor(private readonly ticketCategoriesService: TicketCategoriesService) {}
