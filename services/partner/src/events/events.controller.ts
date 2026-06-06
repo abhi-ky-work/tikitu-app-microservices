@@ -14,8 +14,7 @@ import {
   Roles,
   RolesGuard,
 } from '@tikitu/common';
-import { EventStatus } from '../../prisma/generated/client';
-import { EventsService } from './events.service';
+import { EventStatus, EventsService } from './events.service';
 
 @Controller('v1/events')
 @UseGuards(RolesGuard)
@@ -35,8 +34,12 @@ export class EventsController {
   @Get()
   async list(
     @Req() req: AuthenticatedRequest,
-    @Query('status') status?: EventStatus,
+    @Query('status') statusRaw?: string,
   ) {
+    let status: EventStatus | undefined;
+    if (statusRaw !== undefined) {
+      status = parseInt(statusRaw, 10) as EventStatus;
+    }
     return this.eventsService.listPartnerEvents(req.user!, status);
   }
 

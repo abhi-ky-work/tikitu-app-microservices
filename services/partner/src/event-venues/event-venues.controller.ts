@@ -1,22 +1,22 @@
 import { Controller, Get, Post, Body, Query, UseGuards, UnauthorizedException } from '@nestjs/common';
-import { AddressesService } from './addresses.service';
+import { EventVenuesService } from './event-venues.service';
 import { RolesGuard, Roles, AuthenticatedRequest } from '@tikitu/common';
 import { Request } from '@nestjs/common';
 
-@Controller('v1/addresses')
+@Controller('v1/event-venues')
 @UseGuards(RolesGuard)
 @Roles('partner')
-export class AddressesController {
-  constructor(private readonly addressesService: AddressesService) {}
+export class EventVenuesController {
+  constructor(private readonly eventVenuesService: EventVenuesService) {}
 
   @Get('autocomplete')
   async autocomplete(@Query('text') text: string) {
-    return this.addressesService.autocomplete(text);
+    return this.eventVenuesService.autocomplete(text);
   }
 
   @Get('place')
   async getPlaceDetails(@Query('placeId') placeId: string) {
-    return this.addressesService.getPlaceDetails(placeId);
+    return this.eventVenuesService.getPlaceDetails(placeId);
   }
 
   @Post()
@@ -28,7 +28,7 @@ export class AddressesController {
       throw new UnauthorizedException('User not found');
     }
     const cognitoId = req.user.sub;
-    return this.addressesService.createAddress(cognitoId, {
+    return this.eventVenuesService.createEventVenue(cognitoId, {
       customAddressName: body.customAddressName,
       addressLine1: body.addressLine1,
       addressLine2: body.addressLine2,
@@ -47,6 +47,6 @@ export class AddressesController {
       throw new UnauthorizedException('User not found');
     }
     const cognitoId = req.user.sub;
-    return this.addressesService.getAddresses(cognitoId);
+    return this.eventVenuesService.getEventVenues(cognitoId);
   }
 }

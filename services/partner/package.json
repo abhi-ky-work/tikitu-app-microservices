@@ -9,7 +9,8 @@
     "dev": "nest start --watch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed"
   },
   "dependencies": {
     "@aws-sdk/client-location": "^3.1063.0",
@@ -34,5 +35,8 @@
     "dotenv": "^16.6.1",
     "prisma": "^7.0.0",
     "typescript": "^5.3.0"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

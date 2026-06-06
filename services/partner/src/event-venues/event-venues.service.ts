@@ -8,8 +8,8 @@ import {
 } from '@aws-sdk/client-location';
 
 @Injectable()
-export class AddressesService {
-  private readonly logger = new Logger(AddressesService.name);
+export class EventVenuesService {
+  private readonly logger = new Logger(EventVenuesService.name);
   private readonly locationClient: LocationClient;
   private readonly placeIndexName: string;
 
@@ -58,14 +58,14 @@ export class AddressesService {
     }
   }
 
-  async createAddress(cognitoId: string, data: any) {
+  async createEventVenue(cognitoId: string, data: any) {
     const partner = await this.prisma.partner.findUnique({
       where: { cognitoId },
     });
     if (!partner) {
       throw new InternalServerErrorException('Partner not found');
     }
-    return this.prisma.partnerAddress.create({
+    return this.prisma.eventVenues.create({
       data: {
         ...data,
         partnerId: partner.id,
@@ -73,12 +73,12 @@ export class AddressesService {
     });
   }
 
-  async getAddresses(cognitoId: string) {
+  async getEventVenues(cognitoId: string) {
     const partner = await this.prisma.partner.findUnique({
       where: { cognitoId },
     });
     if (!partner) return [];
-    return this.prisma.partnerAddress.findMany({
+    return this.prisma.eventVenues.findMany({
       where: { partnerId: partner.id },
       orderBy: { createdAt: 'desc' },
     });

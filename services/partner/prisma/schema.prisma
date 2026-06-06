@@ -7,16 +7,16 @@ datasource db {
   provider = "postgresql"
 }
 
-model TicketCategory {
+model TicketCategories {
   name         String
   description  String?
   isActive     Boolean            @default(true)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   categoryCode TicketCategoryCode @id @unique
-  ticketTypes  TicketType[]
+  ticketTypes  EventTicketTypes[]
 
-  @@map("ticket_categories")
+  @@map("TicketCategories")
 }
 
 model Partner {
@@ -35,7 +35,7 @@ model Partner {
   events      Event[]
   members     PartnerMember[]
   venues      Venue[]
-  addresses   PartnerAddress[]
+  addresses   EventVenues[]
 
   @@index([cognitoId])
   @@index([email])
@@ -102,21 +102,27 @@ model Event {
   updatedAt        DateTime     @updatedAt
   venueId          String?
   eventType        EventType    @default(CLUB_NIGHT)
-  status           EventStatus  @default(DRAFT)
+  eventStatus      Int          @default(0) // 0: DRAFT, 1: PUBLISHED, 2: CANCELLED
   metadata         Json         @default("{}")
   publishedAt      DateTime?
+  city             String?
+  state            String?
+  zipCode          String?
+  latitude         Float?
+  longitude        Float?
+  addressId        String?
   partner          Partner      @relation(fields: [partnerId], references: [id])
   venue            Venue?       @relation(fields: [venueId], references: [id])
-  ticketTypes      TicketType[]
+  ticketTypes      EventTicketTypes[]
 
   @@index([partnerId])
   @@index([venueId])
   @@index([category])
-  @@index([status])
+  @@index([eventStatus])
   @@index([eventDate])
 }
 
-model TicketType {
+model EventTicketTypes {
   id           String             @id @default(uuid())
   eventId      String
   name         String?
@@ -125,11 +131,12 @@ model TicketType {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   categoryCode TicketCategoryCode
-  category     TicketCategory     @relation(fields: [categoryCode], references: [categoryCode])
+  category     TicketCategories     @relation(fields: [categoryCode], references: [categoryCode])
   event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([categoryCode])
+  @@map("EventTicketTypes")
 }
 
 enum VenueType {
@@ -167,10 +174,10 @@ enum TicketCategoryCode {
   LGR
 }
 
-model PartnerAddress {
+model EventVenues {
   id                String   @id @default(uuid())
   partnerId         String
-  customAddressName String?
+  customAddressName String
   addressLine1      String
   addressLine2      String?
   city              String
@@ -184,5 +191,5 @@ model PartnerAddress {
   partner           Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
-  @@map("partner_addresses")
+  @@map("EventVenues")
 }

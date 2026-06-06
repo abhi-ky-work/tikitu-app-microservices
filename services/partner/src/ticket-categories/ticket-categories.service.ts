@@ -9,14 +9,14 @@ export class TicketCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createTicketCategoryDto: CreateTicketCategoryDto) {
-    const existing = await this.prisma.ticketCategory.findUnique({
+    const existing = await this.prisma.ticketCategories.findUnique({
       where: { categoryCode: createTicketCategoryDto.categoryCode as TicketCategoryCode },
     });
     if (existing) {
       throw new ConflictException(`Category with code ${createTicketCategoryDto.categoryCode} already exists`);
     }
 
-    return this.prisma.ticketCategory.create({
+    return this.prisma.ticketCategories.create({
       data: {
         categoryCode: createTicketCategoryDto.categoryCode as TicketCategoryCode,
         name: createTicketCategoryDto.name,
@@ -28,7 +28,7 @@ export class TicketCategoriesService {
 
   async createBulk(createTicketCategoryDtos: CreateTicketCategoryDto[]) {
     // using createMany to insert multiple records
-    return this.prisma.ticketCategory.createMany({
+    return this.prisma.ticketCategories.createMany({
       data: createTicketCategoryDtos.map((dto) => ({
         categoryCode: dto.categoryCode as TicketCategoryCode,
         name: dto.name,
@@ -40,13 +40,13 @@ export class TicketCategoriesService {
   }
 
   async findAll() {
-    return this.prisma.ticketCategory.findMany({
+    return this.prisma.ticketCategories.findMany({
       orderBy: { name: 'asc' },
     });
   }
 
   async findOne(categoryCode: TicketCategoryCode) {
-    const category = await this.prisma.ticketCategory.findUnique({
+    const category = await this.prisma.ticketCategories.findUnique({
       where: { categoryCode },
     });
     if (!category) {
@@ -58,7 +58,7 @@ export class TicketCategoriesService {
   async update(categoryCode: TicketCategoryCode, updateTicketCategoryDto: UpdateTicketCategoryDto) {
     await this.findOne(categoryCode); // Verify existence
 
-    return this.prisma.ticketCategory.update({
+    return this.prisma.ticketCategories.update({
       where: { categoryCode },
       data: updateTicketCategoryDto,
     });
@@ -68,7 +68,7 @@ export class TicketCategoriesService {
     await this.findOne(categoryCode); // Verify existence
 
     // Deactivate instead of delete to preserve foreign keys
-    return this.prisma.ticketCategory.update({
+    return this.prisma.ticketCategories.update({
       where: { categoryCode },
       data: { isActive: false },
     });

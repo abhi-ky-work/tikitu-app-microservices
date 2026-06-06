@@ -1,2 +1,2 @@
 -- AlterEnum
-ALTER TYPE "TicketCategoryCode" ADD VALUE 'LGR';
+-- 'LGR' is already added in 20260601211947, so we can leave this empty to satisfy shadow database

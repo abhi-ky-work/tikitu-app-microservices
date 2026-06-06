@@ -4,10 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthUser } from '@tikitu/common';
-import { EventStatus, Prisma } from '../../prisma/generated/client';
+import { Prisma } from '../../prisma/generated/client';
 import { BookingClientService } from '../partner/booking-client.service';
 import { PartnerProfileService } from '../partner/partner-profile.service';
 import { PrismaService } from '../prisma/prisma.service';
+
+export enum EventStatus {
+  DRAFT = 0,
+  PUBLISHED = 1,
+  CANCELLED = 2,
+}
 
 @Injectable()
 export class EventsService {
@@ -28,7 +34,7 @@ export class EventsService {
         ...eventFields,
         partnerId,
         venueId: venueId || null,
-        status: EventStatus.DRAFT,
+        eventStatus: EventStatus.DRAFT,
         ticketTypes: ticketTypes?.length
           ? {
               create: ticketTypes.map((tt) => ({
@@ -52,7 +58,7 @@ export class EventsService {
     return this.prisma.event.findMany({
       where: {
         partnerId,
-        ...(status ? { status } : {}),
+        ...(status !== undefined ? { eventStatus: status } : {}),
       },
       include: { ticketTypes: true, venue: true },
       orderBy: { createdAt: 'desc' },
@@ -71,11 +77,11 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    if (event.status === EventStatus.PUBLISHED) {
+    if (event.eventStatus === EventStatus.PUBLISHED) {
       throw new BadRequestException('Event is already published');
     }
 
-    if (event.status === EventStatus.CANCELLED) {
+    if (event.eventStatus === EventStatus.CANCELLED) {
       throw new BadRequestException('Cannot publish a cancelled event');
     }
 
@@ -134,7 +140,7 @@ export class EventsService {
     const updated = await this.prisma.event.update({
       where: { id: event.id },
       data: {
-        status: EventStatus.PUBLISHED,
+        eventStatus: EventStatus.PUBLISHED,
         publishedAt: new Date(),
       },
       include: { ticketTypes: true },
@@ -161,6 +167,12 @@ export class EventsService {
       ticketTypes,
       backgroundImage,
       eventType,
+      addressId,
+      latitude,
+      longitude,
+      city,
+      state,
+      zipCode,
     } = data as {
       name?: string;
       category?: string;
@@ -175,9 +187,15 @@ export class EventsService {
       noteToAttendees?: string;
       termsConditions?: string;
       refundPolicy?: string;
-      ticketTypes?: Array<{ name: string; price: number; quantity: number; categoryCode?: string }>;
+      ticketTypes?: Array<{ name: string; price: number; quantity: number; categoryCode?: string; categoryName?: string }>;
       backgroundImage?: string;
       eventType?: string;
+      addressId?: string;
+      latitude?: number;
+      longitude?: number;
+      city?: string;
+      state?: string;
+      zipCode?: string;
     };
 
     if (!name || !category || !eventDate || !startTime || !venueName) {
@@ -201,6 +219,12 @@ export class EventsService {
       termsConditions,
       refundPolicy,
       ticketTypes,
+      addressId,
+      latitude,
+      longitude,
+      city,
+      state,
+      zipCode,
     };
   }
 
