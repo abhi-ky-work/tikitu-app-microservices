@@ -35,6 +35,7 @@ model Partner {
   events      Event[]
   members     PartnerMember[]
   venues      Venue[]
+  addresses   PartnerAddress[]
 
   @@index([cognitoId])
   @@index([email])
@@ -164,4 +165,24 @@ enum TicketCategoryCode {
   GR4
   PL4
   LGR
+}
+
+model PartnerAddress {
+  id                String   @id @default(uuid())
+  partnerId         String
+  customAddressName String?
+  addressLine1      String
+  addressLine2      String?
+  city              String
+  state             String
+  zipCode           String
+  country           String   @default("IN")
+  latitude          Float?
+  longitude         Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  partner           Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@map("partner_addresses")
 }
