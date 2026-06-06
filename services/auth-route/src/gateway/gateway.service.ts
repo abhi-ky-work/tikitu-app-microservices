@@ -31,6 +31,7 @@ export class GatewayService {
         notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3004',
         booking: process.env.BOOKING_SERVICE_URL || 'http://localhost:3005',
         user: process.env.USER_SERVICE_URL || 'http://localhost:3006',
+        eventSearch: process.env.EVENT_SEARCH_SERVICE_URL || 'http://localhost:3007',
       },
     };
   }

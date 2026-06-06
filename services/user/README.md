@@ -47,3 +47,7 @@ npm run dev
 
 The service will run on http://localhost:3006
 
+
+
+## Best Practices
+- **Database Table Naming Conventions:** All database table names and Prisma models MUST be saved with Capital format (PascalCase) without spaces or underscores (e.g., `EventVenues`, `TicketCategories`). Do not use underscore format.

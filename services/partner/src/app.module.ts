@@ -7,6 +7,7 @@ import { PartnerModule } from './partner/partner.module';
 import { TicketCategoriesModule } from './ticket-categories/ticket-categories.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EventVenuesModule } from './event-venues/event-venues.module';
+import { EventCategoriesModule } from './event-categories/event-categories.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EventVenuesModule } from './event-venues/event-venues.module';
     EventsModule,
     TicketCategoriesModule,
     EventVenuesModule,
+    EventCategoriesModule,
   ],
 })
 export class AppModule {}

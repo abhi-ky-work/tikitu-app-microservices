@@ -193,3 +193,14 @@ model EventVenues {
   @@index([partnerId])
   @@map("EventVenues")
 }
+
+model EventCategories {
+  code        String   @id @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("EventCategories")
+}

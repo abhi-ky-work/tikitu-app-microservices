@@ -93,3 +93,7 @@ curl -X GET http://localhost:3000/api/v1/booking/events
 - Invalid or expired tokens receive 401 Unauthorized responses
 - Role-based access control is enforced at the service level
 
+
+
+## Best Practices
+- **Database Table Naming Conventions:** All database table names and Prisma models MUST be saved with Capital format (PascalCase) without spaces or underscores (e.g., `EventVenues`, `TicketCategories`). Do not use underscore format.

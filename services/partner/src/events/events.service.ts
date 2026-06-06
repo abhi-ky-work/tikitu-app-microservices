@@ -1,8 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { AuthUser } from '@tikitu/common';
 import { Prisma } from '../../prisma/generated/client';
 import { BookingClientService } from '../partner/booking-client.service';
@@ -16,12 +20,21 @@ export enum EventStatus {
 }
 
 @Injectable()
-export class EventsService {
+export class EventsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly partnerProfile: PartnerProfileService,
     private readonly bookingClient: BookingClientService,
+    @Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka,
   ) {}
+
+  async onModuleInit() {
+    await this.kafkaClient.connect();
+  }
+
+  async onModuleDestroy() {
+    await this.kafkaClient.close();
+  }
 
   async createDraftEvent(user: AuthUser, data: Record<string, unknown>) {
     const partnerId = await this.partnerProfile.resolvePartnerId(user.sub);
@@ -95,11 +108,11 @@ export class EventsService {
       throw new BadRequestException('Event must have at least one ticket type with quantity');
     }
 
-    const city = event.venue?.city || this.extractCityFromLocation(event.location);
-    const venueId = event.venueId || event.venue?.id;
+    const city = event.venue?.city || event.city || this.extractCityFromLocation(event.location);
+    const venueId = event.venueId || event.venue?.id || event.addressId;
 
     if (!venueId) {
-      throw new BadRequestException('Event must be linked to a venue (venueId) before publish');
+      throw new BadRequestException('Event must be linked to a venue or address before publish');
     }
 
     const startDateTime = new Date(`${event.eventDate.toISOString().split('T')[0]}T${event.startTime}`);
@@ -145,6 +158,43 @@ export class EventsService {
       },
       include: { ticketTypes: true },
     });
+
+    // Prepare Kafka payload for search ingestion
+    const kafkaPayload = {
+      id: updated.id,
+      name: updated.name,
+      category: updated.category,
+      description: updated.description,
+      backgroundImage: updated.backgroundImage,
+      eventDate: updated.eventDate.toISOString(),
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      venueName: updated.venueName,
+      location: updated.location,
+      city: updated.city || city,
+      state: updated.state,
+      zipCode: updated.zipCode,
+      latitude: updated.latitude,
+      longitude: updated.longitude,
+      ticketSalesClose: updated.ticketSalesClose?.toISOString() || null,
+      noteToAttendees: updated.noteToAttendees,
+      termsConditions: updated.termsConditions,
+      refundPolicy: updated.refundPolicy,
+      ticketTypes: updated.ticketTypes.map((tt) => ({
+        id: tt.id,
+        name: tt.name,
+        categoryCode: tt.categoryCode,
+        price: tt.price,
+        quantity: tt.quantity,
+      })),
+    };
+
+    try {
+      this.kafkaClient.emit('event.published', kafkaPayload);
+      console.log('Successfully emitted event.published event to Kafka.');
+    } catch (kafkaError) {
+      console.error('Failed to emit event.published to Kafka:', kafkaError);
+    }
 
     return { catalogEvent: updated, inventory };
   }

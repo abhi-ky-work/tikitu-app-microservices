@@ -59,6 +59,20 @@ const ticketCategoriesData = [
   }
 ];
 
+const eventCategoriesData = [
+  { code: "club-nights", name: "Club Nights" },
+  { code: "gigs", name: "Gigs" },
+  { code: "fun-things", name: "Fun Things" },
+  { code: "food-drink", name: "Food & Drink" },
+  { code: "festivals", name: "Festivals" },
+  { code: "business-conferences", name: "Business Conferences" },
+  { code: "dating", name: "Dating" },
+  { code: "comedy", name: "Comedy" },
+  { code: "arts-performance", name: "Arts & Performance" },
+  { code: "classes", name: "Classes" },
+  { code: "sports-fitness", name: "Sports & Fitness" }
+];
+
 async function main() {
   console.log('Seeding TicketCategories...');
   
@@ -68,6 +82,17 @@ async function main() {
       update: {
         name: category.name,
         description: category.description,
+      },
+      create: category,
+    });
+  }
+
+  console.log('Seeding EventCategories...');
+  for (const category of eventCategoriesData) {
+    await prisma.eventCategories.upsert({
+      where: { code: category.code },
+      update: {
+        name: category.name,
       },
       create: category,
     });
