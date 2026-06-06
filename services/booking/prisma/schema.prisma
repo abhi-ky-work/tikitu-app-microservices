@@ -50,7 +50,8 @@ model EventInventory {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  bookings Booking[]
+  bookings            Booking[]
+  ticketTypeInventory TicketTypeInventory[]
 
   @@index([partnerId])
   @@index([venueId])
@@ -60,9 +61,34 @@ model EventInventory {
   @@map("event_inventory")
 }
 
+model TicketTypeInventory {
+  id                String          @id @default(uuid())
+  eventInventoryId  String
+  catalogTicketTypeId String
+  name              String
+  categoryCode      String
+  price             Float
+  totalQuantity     Int
+  availableQuantity Int
+  isActive          Boolean         @default(true)
+  isSoldOut         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  eventInventory    EventInventory  @relation(fields: [eventInventoryId], references: [id])
+  bookings          Booking[]
+  tickets           Ticket[]
+
+  @@index([eventInventoryId])
+  @@index([catalogTicketTypeId])
+  @@index([isActive, isSoldOut])
+  @@map("ticket_type_inventory")
+}
+
 model Booking {
   id              String        @id @default(uuid())
   eventInventoryId String
+  ticketTypeInventoryId String?
   userId          String
   status          BookingStatus @default(PENDING)
   totalAmount     Float
@@ -76,10 +102,12 @@ model Booking {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  eventInventory EventInventory @relation(fields: [eventInventoryId], references: [id])
-  tickets        Ticket[]
+  eventInventory      EventInventory       @relation(fields: [eventInventoryId], references: [id])
+  ticketTypeInventory TicketTypeInventory? @relation(fields: [ticketTypeInventoryId], references: [id])
+  tickets             Ticket[]
 
   @@index([eventInventoryId])
+  @@index([ticketTypeInventoryId])
   @@index([userId])
   @@index([status])
   @@index([bookingRef])
@@ -90,6 +118,7 @@ model Ticket {
   id          String       @id @default(uuid())
   bookingId   String
   eventInventoryId String
+  ticketTypeInventoryId String?
   userId      String
   seatNumber  String?
   ticketCode  String       @unique
@@ -99,10 +128,12 @@ model Ticket {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+  booking             Booking              @relation(fields: [bookingId], references: [id])
+  ticketTypeInventory TicketTypeInventory? @relation(fields: [ticketTypeInventoryId], references: [id])
 
   @@index([bookingId])
   @@index([eventInventoryId])
+  @@index([ticketTypeInventoryId])
   @@index([userId])
   @@index([ticketCode])
   @@index([status])

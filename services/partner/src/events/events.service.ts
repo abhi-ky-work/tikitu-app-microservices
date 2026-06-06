@@ -122,6 +122,13 @@ export class EventsService {
       noteToAttendees: event.noteToAttendees,
       termsConditions: event.termsConditions,
       refundPolicy: event.refundPolicy,
+      ticketTypes: event.ticketTypes.map((tt) => ({
+        id: tt.id,
+        name: tt.name,
+        categoryCode: tt.categoryCode,
+        price: tt.price,
+        quantity: tt.quantity,
+      })),
     });
 
     const updated = await this.prisma.event.update({

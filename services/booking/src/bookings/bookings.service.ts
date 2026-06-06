@@ -24,11 +24,12 @@ export class BookingsService {
     cognitoUserId: string;
     userId: string;
     eventInventoryId: string;
+    ticketTypeInventoryId?: string;
     numberOfTickets: number;
     paymentMethod: string;
     idempotencyKey: string;
   }) {
-    const { userId, eventInventoryId, numberOfTickets, paymentMethod, idempotencyKey } =
+    const { userId, eventInventoryId, ticketTypeInventoryId, numberOfTickets, paymentMethod, idempotencyKey } =
       params;
 
     if (numberOfTickets < 1) {
@@ -50,14 +51,35 @@ export class BookingsService {
       throw new NotFoundException('Event not found or not available');
     }
 
-    const totalAmount = eventInventory.basePrice * numberOfTickets;
+    let basePrice = eventInventory.basePrice;
+
+    if (ticketTypeInventoryId) {
+      const ticketType = await this.prisma.ticketTypeInventory.findFirst({
+        where: { id: ticketTypeInventoryId, eventInventoryId, isActive: true, isSoldOut: false },
+      });
+      if (!ticketType) {
+        throw new NotFoundException('Ticket type not found or sold out');
+      }
+      basePrice = ticketType.price;
+    }
+
+    const totalAmount = basePrice * numberOfTickets;
     const bookingRef = `TKT-${randomBytes(4).toString('hex').toUpperCase()}`;
 
-    const decremented = await this.inventory.decrementSeats(
-      eventInventoryId,
-      numberOfTickets,
-      eventInventory.version,
-    );
+    let decremented = false;
+    if (ticketTypeInventoryId) {
+      decremented = await this.inventory.decrementTicketTypeSeats(
+        eventInventoryId,
+        ticketTypeInventoryId,
+        numberOfTickets
+      );
+    } else {
+      decremented = await this.inventory.decrementSeats(
+        eventInventoryId,
+        numberOfTickets,
+        eventInventory.version,
+      );
+    }
 
     if (!decremented) {
       throw new ConflictException('Not enough seats available');
@@ -66,6 +88,7 @@ export class BookingsService {
     const booking = await this.prisma.booking.create({
       data: {
         eventInventoryId,
+        ticketTypeInventoryId,
         userId,
         status: BookingStatus.PENDING,
         totalAmount,
@@ -100,7 +123,7 @@ export class BookingsService {
   async confirmBooking(bookingId: string, paymentId: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { eventInventory: true },
+      include: { eventInventory: true, ticketTypeInventory: true },
     });
 
     if (!booking) {
@@ -130,10 +153,11 @@ export class BookingsService {
           data: {
             bookingId: booking.id,
             eventInventoryId: booking.eventInventoryId,
+            ticketTypeInventoryId: booking.ticketTypeInventoryId,
             userId: booking.userId,
             ticketCode: `TK-${randomBytes(6).toString('hex').toUpperCase()}`,
             status: TicketStatus.ACTIVE,
-            price: booking.eventInventory.basePrice,
+            price: booking.ticketTypeInventoryId && booking.ticketTypeInventory ? booking.ticketTypeInventory.price : booking.eventInventory.basePrice,
           },
         });
         issued.push(ticket);
@@ -173,10 +197,18 @@ export class BookingsService {
       return null;
     }
 
-    await this.prisma.eventInventory.update({
-      where: { id: booking.eventInventoryId },
-      data: { availableSeats: { increment: booking.numberOfTickets } },
-    });
+    if (booking.ticketTypeInventoryId) {
+      await this.inventory.incrementTicketTypeSeats(
+        booking.eventInventoryId,
+        booking.ticketTypeInventoryId,
+        booking.numberOfTickets
+      );
+    } else {
+      await this.prisma.eventInventory.update({
+        where: { id: booking.eventInventoryId },
+        data: { availableSeats: { increment: booking.numberOfTickets } },
+      });
+    }
 
     return this.prisma.booking.update({
       where: { id: bookingId },

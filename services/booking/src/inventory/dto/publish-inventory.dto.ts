@@ -16,4 +16,11 @@ export class PublishInventoryDto {
   noteToAttendees?: string | null;
   termsConditions?: string | null;
   refundPolicy?: string | null;
+  ticketTypes!: Array<{
+    id: string;
+    name: string | null;
+    categoryCode: string;
+    price: number;
+    quantity: number;
+  }>;
 }

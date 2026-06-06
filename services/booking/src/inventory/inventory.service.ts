@@ -41,8 +41,27 @@ export class InventoryService {
         noteToAttendees: dto.noteToAttendees,
         termsConditions: dto.termsConditions,
         refundPolicy: dto.refundPolicy,
+        ticketTypeInventory: {
+          create: dto.ticketTypes?.map((tt) => ({
+            catalogTicketTypeId: tt.id,
+            name: tt.name || 'Standard',
+            categoryCode: tt.categoryCode,
+            price: tt.price,
+            totalQuantity: tt.quantity,
+            availableQuantity: tt.quantity,
+          })),
+        },
       },
+      include: { ticketTypeInventory: true },
     });
+
+    // Initialize Redis keys for each ticket type
+    if (inventory.ticketTypeInventory) {
+      for (const tt of inventory.ticketTypeInventory) {
+        const redisKey = `event:${inventory.id}:ticketType:${tt.id}:inventory`;
+        await this.redis.initializeInventory(redisKey, tt.totalQuantity);
+      }
+    }
 
     await this.invalidateDiscoveryCache(dto.city);
     await this.openSearch.indexEvent({
@@ -154,6 +173,67 @@ export class InventoryService {
       await this.invalidateDiscoveryCache(inv.city);
     }
     return true;
+  }
+
+  async decrementTicketTypeSeats(
+    eventInventoryId: string,
+    ticketTypeInventoryId: string,
+    quantity: number,
+  ): Promise<boolean> {
+    const redisKey = `event:${eventInventoryId}:ticketType:${ticketTypeInventoryId}:inventory`;
+    const remaining = await this.redis.decrementInventory(redisKey, quantity);
+
+    if (remaining === null) {
+      // Redis might be down or not enabled. Fallback to DB decrement
+      const result = await this.prisma.ticketTypeInventory.updateMany({
+        where: {
+          id: ticketTypeInventoryId,
+          eventInventoryId,
+          availableQuantity: { gte: quantity },
+          isActive: true,
+          isSoldOut: false,
+        },
+        data: {
+          availableQuantity: { decrement: quantity },
+        },
+      });
+      return result.count > 0;
+    }
+
+    if (remaining >= 0) {
+      // Sync DB asynchronously
+      this.prisma.ticketTypeInventory.update({
+        where: { id: ticketTypeInventoryId },
+        data: {
+          availableQuantity: remaining,
+          isSoldOut: remaining === 0,
+        },
+      }).catch(err => console.error('Failed to sync DB with Redis ticket decrement', err));
+      return true;
+    }
+
+    return false;
+  }
+
+  async incrementTicketTypeSeats(
+    eventInventoryId: string,
+    ticketTypeInventoryId: string,
+    quantity: number,
+  ): Promise<void> {
+    const redisKey = `event:${eventInventoryId}:ticketType:${ticketTypeInventoryId}:inventory`;
+    const remaining = await this.redis.incrementInventory(redisKey, quantity);
+
+    if (remaining === null) {
+      await this.prisma.ticketTypeInventory.updateMany({
+        where: { id: ticketTypeInventoryId, eventInventoryId },
+        data: { availableQuantity: { increment: quantity }, isSoldOut: false },
+      });
+    } else {
+      this.prisma.ticketTypeInventory.update({
+        where: { id: ticketTypeInventoryId },
+        data: { availableQuantity: remaining, isSoldOut: false },
+      }).catch(err => console.error('Failed to sync DB with Redis ticket increment', err));
+    }
   }
 
   private async invalidateDiscoveryCache(city: string) {
