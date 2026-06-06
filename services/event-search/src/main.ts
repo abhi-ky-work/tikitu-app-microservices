@@ -17,6 +17,9 @@ async function bootstrap() {
         groupId: 'event-search-consumer',
         allowAutoTopicCreation: true,
       },
+      subscribe: {
+        fromBeginning: true,
+      },
     },
   });
 
