@@ -246,7 +246,10 @@ export class SearchService implements OnModuleInit, OnModuleDestroy {
     const mustQueries: any[] = [
       {
         term: {
-          city: cityKey,
+          city: {
+            value: cityKey,
+            case_insensitive: true,
+          },
         },
       },
     ];

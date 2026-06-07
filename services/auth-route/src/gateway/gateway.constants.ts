@@ -40,7 +40,7 @@ export const SERVICE_ROUTES: Record<string, keyof typeof SERVICE_URLS> = {
 export function getServiceUrl(serviceName: string): string | null {
   const service = SERVICE_ROUTES[serviceName];
   if (!service) return null;
-  const envVar = `${service.toUpperCase()}_SERVICE_URL`;
+  const envVar = `${service.replace(/([A-Z])/g, '_$1').toUpperCase()}_SERVICE_URL`;
   return process.env[envVar] || SERVICE_URLS[service] || null;
 }
 

@@ -134,7 +134,16 @@ export class InventoryService {
     if (cached) return { data: cached, cached: true };
 
     const event = await this.prisma.eventInventory.findFirst({
-      where: { id, isActive: true },
+      where: {
+        OR: [
+          { id },
+          { catalogEventId: id },
+        ],
+        isActive: true,
+      },
+      include: {
+        ticketTypeInventory: true,
+      },
     });
 
     if (event) {
